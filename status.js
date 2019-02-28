@@ -7,48 +7,78 @@ require('./types').register()
 
 const BN = require('bn.js')
 
+var STATUS = {}
+
+function sleep(seconds) {
+  return new Promise(function(resolve) {
+    setTimeout(resolve, seconds * 1000)
+  })
+}
+
 async function main () {
   await runtimeUp
 
-  const [name, version, peers, system_name] = await Promise.all([system.chain, system.version, system.peers, system.name])
-  console.log(name, version, system_name)
-  console.log('peers:', peers.length)
+  while (true) {
+    await sleep(6)
+    STATUS = await getStatusUpdate()
+  }
+}
 
-  const [runtimeSpecName, implName] = await Promise.all([runtime.version.specName, runtime.version.implName])
-  console.log('Runtime Spec name:', runtimeSpecName)
-  console.log('Runtime Implementation:', implName)
+async function getStatusUpdate() {
+  let update = {}
 
-  const [height] = await Promise.all([chain.height])
-  console.log('block height', height.valueOf())
+  const [chain_name, version, peers, name] = await Promise.all([
+    system.chain, system.version, system.peers, system.name
+  ])
 
-  // Council
+  update.system = {
+    'chain': chain_name,
+    name,
+    version,
+  }
+
+  const [spec, impl] = await Promise.all([
+    runtime.version.specName, runtime.version.implName
+  ])
+
+  update.runtime_version = {
+    spec,
+    impl,
+  }
+
+  const height = await chain.height
+  update.block_height = height.valueOf()
+
+  // Council + Election
   let council = await runtime.council.activeCouncil
-  console.log('council size:', council.length)
-
-  // Election
   let electionStage = await runtime.election.stage
-  electionStage = electionStage.value == 0 ? 'No Election Running' : electionStage.option
-  console.log('Election stage:', electionStage)
+  electionStage = electionStage.value == 0 ? 'Not Running' : electionStage.option
+
+  update.council = {
+    members_count: council.length,
+    election_stage: electionStage
+  }
 
   // Validators
   const validators = await runtime.session.validators
-  console.log('Validators:', validators.length)
-  const authorities = await runtime.core.authorities
-  console.log('Authorities:', authorities.length)
+  update.validators = {
+    count: validators.length
+  }
+  //const authorities = await runtime.core.authorities
+  //console.log('Authorities:', authorities.length)
 
   if (validators.length > 0) {
     let balances = await Promise.all(validators.map(validator => runtime.balances.balance(validator)))
-    console.log('Balances:', balances.join(', '))
+    let total = sumOfBalances(balances)
 
+    update.validators.total_stake = total
     // WhyTF does this not work!?!?!
     // let total = validators.reduce( function(prev, current) {
     //   return (new Balance(prev)).add(new Balance(current))
     // }, new Balance(0));
-
-    let total = sumOfBalances(balances)
-
-    console.log('Validators total Balance:', total)
   }
+
+  return update
 }
 
 function sumOfBalances (balances) {
@@ -60,3 +90,18 @@ function sumOfBalances (balances) {
 }
 
 main()
+
+var express = require('express');
+var app = express();
+
+app.get('/', function (req, res) {
+  res.setHeader('Content-Type', 'application/json');
+  res.end(JSON.stringify(STATUS))
+})
+
+var server = app.listen(8081, function () {
+   var host = server.address().address
+   var port = server.address().port
+
+   console.log("Example app listening at http://%s:%s", host, port)
+})
