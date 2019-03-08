@@ -1,20 +1,5 @@
-const { post, calls, runtime, runtimeUp, secretStore, setNodeUri, ss58Encode } = require('oo7-substrate')
-const path = require('path')
-
-// load env variables from .env.local into process.env
-try {
-  require('dotenv').config({
-    path: path.resolve(process.cwd(), '.env.local')
-  })
-} catch (e) {}
-
-const AccountSeed = process.env.ACCOUNT_SEED
-
-const DefaultAccount = secretStore().submit(AccountSeed, 'Default')
-require('assert')(secretStore().find(DefaultAccount))
-
-setNodeUri(['ws://127.0.0.1:9944/']) // default
-// 'wss://substrate-rpc.parity.io/' - CharredCherry
+const env = require('./env')
+const { post, calls, runtime, runtimeUp, secretStore, ss58Encode } = require('oo7-substrate')
 
 async function main () {
   await runtimeUp
@@ -22,11 +7,10 @@ async function main () {
   let index = 0
   const intentions = await runtime.staking.intentions
   const validator = intentions.find((accountId, ix) => {
-    if (secretStore().find(accountId)) {
+    if (ss58Encode(env.Account) === secretStore().find(accountId).address) {
       index = ix
       return true
     }
-
     return false
   })
 
@@ -39,7 +23,7 @@ async function main () {
 
   try {
     post({
-      sender: DefaultAccount,
+      sender: env.Account,
       call: calls.staking.unstake(index)
     }).tie(console.log)
   } catch (err) {

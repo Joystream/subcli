@@ -27,14 +27,16 @@ async function getStatusUpdate () {
   const height = await chain.height
   update.block_height = height.valueOf()
 
-  // Council + Election
-  let council = await runtime.council.activeCouncil
-  let electionStage = await runtime.election.stage
-  electionStage = electionStage.value === 0 ? 'Not Running' : electionStage.option
+  if (spec === 'joystream-node') {
+    // Council + Election
+    let council = await runtime.council.activeCouncil
+    let electionStage = await runtime.election.stage
+    electionStage = electionStage.value === 0 ? 'Not Running' : electionStage.option
 
-  update.council = {
-    members_count: council.length,
-    election_stage: electionStage
+    update.council = {
+      members_count: council.length,
+      election_stage: electionStage
+    }
   }
 
   // Validators
