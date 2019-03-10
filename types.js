@@ -15,7 +15,9 @@ const module_council = {
     stake: Balance,
     backers: 'Vec<Backer<AccountId, BalanceOf<T>>'
   },
-  'Backer<AccountId, BalanceOf<T>>': {
+  // 'Backer<AccountId, BalanceOf<T>>': {
+  // Bug ..proper type notation resulting in: Unknown type to decode: Backer<AccountId,BalanceOf<T>
+  'Backer<AccountId, BalanceOf<T>': {
     member: AccountId,
     stake: Balance
   },
