@@ -31,7 +31,7 @@ async function getStatusUpdate () {
     // Council + Election
     let council = await runtime.council.activeCouncil
     let electionStage = await runtime.election.stage
-    electionStage = electionStage.value === 0 ? 'Not Running' : electionStage.option
+    electionStage = electionStage.value.valueOf() == 0 ? 'Not Running' : electionStage.option
 
     update.council = {
       members_count: council.length,
