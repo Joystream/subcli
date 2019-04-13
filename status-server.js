@@ -1,3 +1,11 @@
+// UGLY hack around oo7-substrate needing window global just to get this script
+// working. see https://github.com/paritytech/oo7/pull/125
+if (typeof window === 'undefined') {
+  const noop = () => {}
+  global.window = {}
+  window.addEventListener = noop
+}
+
 const { runtimeUp, setNodeUri } = require('oo7-substrate')
 const getStatusUpdate = require('./getstatus')
 const express = require('express')
